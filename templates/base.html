@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}KNEC Exam Management System{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --header-height: 60px;
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --border-color: #e0e0e0;
+            --bg-light: #f8f9fa;
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f6fa;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 1000;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: background-color var(--transition-speed);
+        }
+
+        .menu-toggle:hover {
+            background-color: var(--bg-light);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .brand i {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-icon {
+            position: relative;
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: background-color var(--transition-speed);
+        }
+
+        .header-icon:hover {
+            background-color: var(--bg-light);
+        }
+
+        .badge-notification {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background: #e74c3c;
+            color: white;
+            font-size: 0.65rem;
+            padding: 0.15rem 0.35rem;
+            min-width: 1.2rem;
+            height: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            transition: background-color var(--transition-speed);
+        }
+
+        .user-menu:hover {
+            background-color: var(--bg-light);
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            background: var(--accent-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            width: var(--sidebar-width);
+            height: calc(100vh - var(--header-height));
+            background: white;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            overflow-x: hidden;
+            transform: translateX(-100%);
+            transition: transform var(--transition-speed);
+            z-index: 999;
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .sidebar-section {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            padding: 0 1.5rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .nav-item {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: background-color var(--transition-speed);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .nav-item:hover {
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background-color: var(--bg-light);
+            color: var(--accent-color);
+            border-left: 3px solid var(--accent-color);
+            padding-left: calc(1.5rem - 3px);
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .nav-item .badge {
+            margin-left: auto;
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Dropdown Nav Item */
+        .nav-dropdown {
+            position: relative;
+        }
+
+        .nav-dropdown-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: background-color var(--transition-speed);
+            cursor: pointer;
+            border: none;
+            background: none;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        .nav-dropdown-toggle:hover {
+            background-color: var(--bg-light);
+        }
+
+        .nav-dropdown-toggle .left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-dropdown-toggle i.bi-chevron-down {
+            transition: transform var(--transition-speed);
+        }
+
+        .nav-dropdown.active .nav-dropdown-toggle i.bi-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .nav-dropdown-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height var(--transition-speed);
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .nav-dropdown.active .nav-dropdown-menu {
+            max-height: 500px;
+        }
+
+        .nav-dropdown-item {
+            display: block;
+            padding: 0.65rem 1.5rem 0.65rem 3.75rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: background-color var(--transition-speed);
+            font-size: 0.9rem;
+        }
+
+        .nav-dropdown-item:hover {
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem;
+            transition: margin-left var(--transition-speed);
+        }
+
+        /* Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            width: 100%;
+            height: calc(100vh - var(--header-height));
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed), visibility var(--transition-speed);
+            z-index: 998;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Desktop Styles */
+        @media (min-width: 992px) {
+            .sidebar.desktop-open {
+                transform: translateX(0);
+            }
+
+            .main-content.sidebar-open {
+                margin-left: var(--sidebar-width);
+            }
+
+            .sidebar-overlay {
+                display: none;
+            }
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 991px) {
+            .brand span {
+                display: none;
+            }
+
+            .user-info {
+                display: none;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+        }
+
+        /* Scrollbar Styling */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Content Card */
+        .content-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .content-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        /* Utility Classes */
+        .text-muted {
+            color: var(--text-secondary) !important;
+        }
+
+        /* Dropdown Menu */
+        .dropdown-menu {
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <a href="#" class="brand">
+                <i class="bi bi-mortarboard-fill"></i>
+                <span>KNEC EMS</span>
+            </a>
+        </div>
+        
+        <div class="header-right">
+            <button class="header-icon" title="Search">
+                <i class="bi bi-search"></i>
+            </button>
+            
+            <button class="header-icon" title="Notifications">
+                <i class="bi bi-bell"></i>
+                <span class="badge-notification">3</span>
+            </button>
+            
+            <button class="header-icon" title="Messages">
+                <i class="bi bi-envelope"></i>
+                <span class="badge-notification">5</span>
+            </button>
+            
+            <div class="dropdown">
+                <div class="user-menu" data-bs-toggle="dropdown">
+                    <div class="user-avatar">SO</div>
+                    <div class="user-info">
+                        <div class="user-name">Steve Ongera</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i> Profile</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i> Settings</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-question-circle me-2"></i> Help</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <!-- Dashboard Section -->
+        <div class="sidebar-section">
+            <a href="#" class="nav-item active">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+
+        <!-- User Management -->
+        <div class="sidebar-section">
+            <div class="section-title">User Management</div>
+            <div class="nav-dropdown">
+                <button class="nav-dropdown-toggle">
+                    <div class="left">
+                        <i class="bi bi-people"></i>
+                        <span>Users</span>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <a href="#" class="nav-dropdown-item">All Users</a>
+                    <a href="#" class="nav-dropdown-item">Administrators</a>
+                    <a href="#" class="nav-dropdown-item">KNEC Staff</a>
+                    <a href="#" class="nav-dropdown-item">Marks Entry Clerks</a>
+                    <a href="#" class="nav-dropdown-item">School Users</a>
+                </div>
+            </div>
+            <a href="#" class="nav-item">
+                <i class="bi bi-activity"></i>
+                <span>Activity Logs</span>
+            </a>
+        </div>
+
+        <!-- Academic Structure -->
+        <div class="sidebar-section">
+            <div class="section-title">Academic Structure</div>
+            <a href="#" class="nav-item">
+                <i class="bi bi-calendar3"></i>
+                <span>Academic Years</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-layers"></i>
+                <span>Education Levels</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-book"></i>
+                <span>Subjects</span>
+            </a>
+            <div class="nav-dropdown">
+                <button class="nav-dropdown-toggle">
+                    <div class="left">
+                        <i class="bi bi-trophy"></i>
+                        <span>Grading</span>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <a href="#" class="nav-dropdown-item">Grading Schemes</a>
+                    <a href="#" class="nav-dropdown-item">Grade Ranges</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schools -->
+        <div class="sidebar-section">
+            <div class="section-title">Schools</div>
+            <a href="#" class="nav-item">
+                <i class="bi bi-building"></i>
+                <span>All Schools</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-diagram-3"></i>
+                <span>School Categories</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-person-badge"></i>
+                <span>Administrators</span>
+            </a>
+        </div>
+
+        <!-- Candidates & Registration -->
+        <div class="sidebar-section">
+            <div class="section-title">Candidates</div>
+            <a href="#" class="nav-item">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>All Candidates</span>
+                <span class="badge bg-primary">1,234</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-file-earmark-text"></i>
+                <span>Birth Certificates</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-person-plus"></i>
+                <span>Registration</span>
+            </a>
+        </div>
+
+        <!-- Examinations -->
+        <div class="sidebar-section">
+            <div class="section-title">Examinations</div>
+            <div class="nav-dropdown">
+                <button class="nav-dropdown-toggle">
+                    <div class="left">
+                        <i class="bi bi-pencil-square"></i>
+                        <span>Marks Entry</span>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <a href="#" class="nav-dropdown-item">Enter Marks</a>
+                    <a href="#" class="nav-dropdown-item">Bulk Upload</a>
+                    <a href="#" class="nav-dropdown-item">Permissions</a>
+                </div>
+            </div>
+            <a href="#" class="nav-item">
+                <i class="bi bi-list-check"></i>
+                <span>Exam Results</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-bar-chart"></i>
+                <span>Aggregate Results</span>
+            </a>
+        </div>
+
+        <!-- Results & Payments -->
+        <div class="sidebar-section">
+            <div class="section-title">Results & Payments</div>
+            <a href="#" class="nav-item">
+                <i class="bi bi-unlock"></i>
+                <span>Release Results</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-credit-card"></i>
+                <span>Payments</span>
+                <span class="badge bg-success">12</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-receipt"></i>
+                <span>Transactions</span>
+            </a>
+        </div>
+
+        <!-- Reports & Analytics -->
+        <div class="sidebar-section">
+            <div class="section-title">Reports</div>
+            <a href="#" class="nav-item">
+                <i class="bi bi-graph-up"></i>
+                <span>School Performance</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-pie-chart"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-download"></i>
+                <span>Export Data</span>
+            </a>
+        </div>
+
+        <!-- Security -->
+        <div class="sidebar-section">
+            <div class="section-title">Security</div>
+            <a href="#" class="nav-item">
+                <i class="bi bi-shield-exclamation"></i>
+                <span>Fraud Logs</span>
+                <span class="badge bg-danger">2</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-eye"></i>
+                <span>Audit Trail</span>
+            </a>
+        </div>
+
+        <!-- System -->
+        <div class="sidebar-section">
+            <div class="section-title">System</div>
+            <a href="#" class="nav-item">
+                <i class="bi bi-gear"></i>
+                <span>Configuration</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-megaphone"></i>
+                <span>Announcements</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="bi bi-bell"></i>
+                <span>Notifications</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        {% block content %}
+        <div class="content-card">
+            <div class="content-header">
+                <h1 class="content-title">Dashboard</h1>
+            </div>
+            <p>Welcome to KNEC Exam Management System. Select a menu item to get started.</p>
+        </div>
+        {% endblock %}
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Sidebar Toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const mainContent = document.getElementById('mainContent');
+
+        menuToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+            
+            // For desktop, add class to main content
+            if (window.innerWidth >= 992) {
+                sidebar.classList.toggle('desktop-open');
+                mainContent.classList.toggle('sidebar-open');
+            }
+        });
+
+        // Close sidebar when clicking overlay
+        sidebarOverlay.addEventListener('click', function() {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+        });
+
+        // Dropdown functionality
+        const dropdownToggles = document.querySelectorAll('.nav-dropdown-toggle');
+        
+        dropdownToggles.forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const dropdown = this.parentElement;
+                const isActive = dropdown.classList.contains('active');
+                
+                // Close all dropdowns
+                document.querySelectorAll('.nav-dropdown').forEach(d => {
+                    d.classList.remove('active');
+                });
+                
+                // Toggle current dropdown
+                if (!isActive) {
+                    dropdown.classList.add('active');
+                }
+            });
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 992) {
+                sidebarOverlay.classList.remove('active');
+            } else {
+                sidebar.classList.remove('desktop-open');
+                mainContent.classList.remove('sidebar-open');
+            }
+        });
+
+        // Active nav item
+        document.querySelectorAll('.nav-item, .nav-dropdown-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                // Don't prevent default for demonstration
+                // e.preventDefault();
+                
+                // Remove active class from all items
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('active');
+                });
+                
+                // Add active class to clicked item
+                if (this.classList.contains('nav-item')) {
+                    this.classList.add('active');
+                }
+                
+                // Close sidebar on mobile after click
+                if (window.innerWidth < 992) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

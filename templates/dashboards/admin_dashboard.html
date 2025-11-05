@@ -1,0 +1,687 @@
+{% extends "main_application/admin_base.html" %}
+
+{% block title %}Admin Dashboard - KNEC EMS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        padding: 1.5rem;
+        height: 100%;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #7f8c8d;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-change {
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .stat-change.positive {
+        color: #27ae60;
+    }
+
+    .stat-change.negative {
+        color: #e74c3c;
+    }
+
+    .chart-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .chart-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+    }
+
+    .chart-subtitle {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+    }
+
+    .chart-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .chart-action-btn {
+        background: none;
+        border: 1px solid #e0e0e0;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        color: #7f8c8d;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .chart-action-btn:hover {
+        background: #f8f9fa;
+        border-color: #3498db;
+        color: #3498db;
+    }
+
+    .activity-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        color: #7f8c8d;
+        flex-shrink: 0;
+    }
+
+    .activity-content {
+        flex: 1;
+    }
+
+    .activity-title {
+        font-size: 0.9rem;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+    }
+
+    .activity-meta {
+        font-size: 0.8rem;
+        color: #7f8c8d;
+    }
+
+    .task-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .task-item:last-child {
+        border-bottom: none;
+    }
+
+    .task-label {
+        font-size: 0.9rem;
+        color: #2c3e50;
+    }
+
+    .task-badge {
+        font-size: 0.85rem;
+        padding: 0.25rem 0.75rem;
+        background: #e74c3c;
+        color: white;
+        font-weight: 500;
+    }
+
+    .quick-action-btn {
+        width: 100%;
+        padding: 1rem;
+        background: white;
+        border: 1px solid #e0e0e0;
+        text-align: center;
+        text-decoration: none;
+        color: #2c3e50;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .quick-action-btn:hover {
+        background: #f8f9fa;
+        border-color: #3498db;
+        color: #3498db;
+        transform: translateY(-2px);
+    }
+
+    .quick-action-icon {
+        font-size: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="content-title mb-2">Admin Dashboard</h1>
+            <p class="text-muted mb-0">
+                <i class="bi bi-calendar3 me-2"></i>
+                {% if active_year %}{{ active_year.year }}{% else %}No Active Year{% endif %}
+                <span class="mx-2">•</span>
+                <i class="bi bi-clock me-2"></i>
+                Last updated: {{ now|date:"d M Y, H:i" }}
+            </p>
+        </div>
+        <div>
+            <button class="btn btn-outline-primary me-2">
+                <i class="bi bi-download me-2"></i>
+                Export Report
+            </button>
+            <button class="btn btn-primary">
+                <i class="bi bi-arrow-clockwise me-2"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #e3f2fd; color: #2196f3;">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <div class="stat-value">{{ total_users|default:"0" }}</div>
+            <div class="stat-label">Total Users</div>
+            <div class="stat-change positive">
+                <i class="bi bi-arrow-up"></i>
+                <span>12% from last month</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #f3e5f5; color: #9c27b0;">
+                <i class="bi bi-building"></i>
+            </div>
+            <div class="stat-value">{{ total_schools|default:"0" }}</div>
+            <div class="stat-label">Registered Schools</div>
+            <div class="stat-change positive">
+                <i class="bi bi-arrow-up"></i>
+                <span>8% from last month</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #e8f5e9; color: #4caf50;">
+                <i class="bi bi-person-lines-fill"></i>
+            </div>
+            <div class="stat-value">{{ total_candidates|default:"0" }}</div>
+            <div class="stat-label">Total Candidates</div>
+            <div class="stat-change positive">
+                <i class="bi bi-arrow-up"></i>
+                <span>{{ current_year_candidates|default:"0" }} this year</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #fff3e0; color: #ff9800;">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div class="stat-value">KES {{ total_revenue|floatformat:0|default:"0" }}</div>
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-change positive">
+                <i class="bi bi-arrow-up"></i>
+                <span>{{ recent_payments|default:"0" }} payments (30d)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-2 col-sm-4 col-6">
+        <div class="stat-card text-center">
+            <div class="stat-value" style="font-size: 1.5rem;">{{ released_results|default:"0" }}</div>
+            <div class="stat-label">Released Results</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+        <div class="stat-card text-center">
+            <div class="stat-value" style="font-size: 1.5rem;">{{ pending_results|default:"0" }}</div>
+            <div class="stat-label">Pending Results</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+        <div class="stat-card text-center">
+            <div class="stat-value" style="font-size: 1.5rem;">{{ knec_staff|default:"0" }}</div>
+            <div class="stat-label">KNEC Staff</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+        <div class="stat-card text-center">
+            <div class="stat-value" style="font-size: 1.5rem;">{{ marks_entry_clerks|default:"0" }}</div>
+            <div class="stat-label">Marks Entry</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+        <div class="stat-card text-center">
+            <div class="stat-value" style="font-size: 1.5rem; color: #e74c3c;">{{ unresolved_fraud|default:"0" }}</div>
+            <div class="stat-label">Fraud Alerts</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+        <div class="stat-card text-center">
+            <div class="stat-value" style="font-size: 1.5rem;">{{ school_users|default:"0" }}</div>
+            <div class="stat-label">School Users</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Candidate Registration Trend</h3>
+                    <p class="chart-subtitle">Last 6 months</p>
+                </div>
+                <div class="chart-actions">
+                    <button class="chart-action-btn"><i class="bi bi-download"></i></button>
+                    <button class="chart-action-btn"><i class="bi bi-three-dots-vertical"></i></button>
+                </div>
+            </div>
+            <canvas id="candidatesTrendChart" height="80"></canvas>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">User Distribution</h3>
+                    <p class="chart-subtitle">By user type</p>
+                </div>
+            </div>
+            <canvas id="userDistributionChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Grade Distribution</h3>
+                    <p class="chart-subtitle">Overall performance</p>
+                </div>
+                <div class="chart-actions">
+                    <button class="chart-action-btn"><i class="bi bi-download"></i></button>
+                </div>
+            </div>
+            <canvas id="gradeDistributionChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Results by Education Level</h3>
+                    <p class="chart-subtitle">Released results count</p>
+                </div>
+                <div class="chart-actions">
+                    <button class="chart-action-btn"><i class="bi bi-download"></i></button>
+                </div>
+            </div>
+            <canvas id="resultsLevelChart" height="100"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 3 -->
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Payment Trends</h3>
+                    <p class="chart-subtitle">Revenue over last 30 days</p>
+                </div>
+                <div class="chart-actions">
+                    <button class="chart-action-btn"><i class="bi bi-download"></i></button>
+                </div>
+            </div>
+            <canvas id="paymentTrendChart" height="80"></canvas>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Top Performing Schools</h3>
+                    <p class="chart-subtitle">Mean score ranking</p>
+                </div>
+            </div>
+            <canvas id="topSchoolsChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Activity and Tasks -->
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Recent Activities</h3>
+                    <p class="chart-subtitle">System activity log</p>
+                </div>
+                <a href="#" class="text-decoration-none">View All <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <div>
+                {% for activity in recent_activities %}
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="bi bi-{% if activity.action == 'LOGIN' %}box-arrow-in-right{% elif activity.action == 'CREATE' %}plus-circle{% elif activity.action == 'UPDATE' %}pencil{% elif activity.action == 'DELETE' %}trash{% else %}activity{% endif %}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">{{ activity.get_action_display }}</div>
+                        <div class="activity-meta">
+                            {% if activity.user %}{{ activity.user.get_full_name }}{% else %}System{% endif %} • 
+                            {{ activity.timestamp|timesince }} ago
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center py-3">No recent activities</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Pending Tasks</h3>
+                    <p class="chart-subtitle">Requires attention</p>
+                </div>
+            </div>
+            <div>
+                <div class="task-item">
+                    <span class="task-label">
+                        <i class="bi bi-file-earmark-check me-2"></i>
+                        Unverified Birth Certificates
+                    </span>
+                    <span class="task-badge">{{ pending_tasks.unverified_certificates }}</span>
+                </div>
+                <div class="task-item">
+                    <span class="task-label">
+                        <i class="bi bi-list-check me-2"></i>
+                        Pending Results Release
+                    </span>
+                    <span class="task-badge">{{ pending_tasks.pending_results }}</span>
+                </div>
+                <div class="task-item">
+                    <span class="task-label">
+                        <i class="bi bi-shield-exclamation me-2"></i>
+                        Unresolved Fraud Attempts
+                    </span>
+                    <span class="task-badge">{{ pending_tasks.unresolved_fraud }}</span>
+                </div>
+                <div class="task-item">
+                    <span class="task-label">
+                        <i class="bi bi-person-x me-2"></i>
+                        Expired Accounts
+                    </span>
+                    <span class="task-badge">{{ pending_tasks.expired_accounts }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card mt-3">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Quick Actions</h3>
+                </div>
+            </div>
+            <div class="row g-2">
+                <div class="col-6">
+                    <a href="#" class="quick-action-btn">
+                        <div class="quick-action-icon"><i class="bi bi-person-plus"></i></div>
+                        <div>Add User</div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="#" class="quick-action-btn">
+                        <div class="quick-action-icon"><i class="bi bi-building"></i></div>
+                        <div>Add School</div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="#" class="quick-action-btn">
+                        <div class="quick-action-icon"><i class="bi bi-unlock"></i></div>
+                        <div>Release Results</div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="#" class="quick-action-btn">
+                        <div class="quick-action-icon"><i class="bi bi-graph-up"></i></div>
+                        <div>View Reports</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+    // Parse data from Django
+    const candidatesByMonth = {{ candidates_by_month_json|safe }};
+    const resultsByLevel = {{ results_by_level_json|safe }};
+    const gradesData = {{ grades_data_json|safe }};
+    const topSchools = {{ top_schools_json|safe }};
+    const activityByDay = {{ activity_by_day_json|safe }};
+    const paymentByDay = {{ payment_by_day_json|safe }};
+    const userTypeDistribution = {{ user_type_distribution_json|safe }};
+
+    // Chart.js default config
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+    Chart.defaults.color = '#7f8c8d';
+
+    // 1. Candidates Trend Chart
+    new Chart(document.getElementById('candidatesTrendChart'), {
+        type: 'line',
+        data: {
+            labels: candidatesByMonth.map(d => d.month),
+            datasets: [{
+                label: 'Registrations',
+                data: candidatesByMonth.map(d => d.count),
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // 2. User Distribution Chart
+    new Chart(document.getElementById('userDistributionChart'), {
+        type: 'doughnut',
+        data: {
+            labels: userTypeDistribution.map(d => d.type),
+            datasets: [{
+                data: userTypeDistribution.map(d => d.count),
+                backgroundColor: ['#3498db', '#9b59b6', '#e74c3c', '#f39c12']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // 3. Grade Distribution Chart
+    new Chart(document.getElementById('gradeDistributionChart'), {
+        type: 'bar',
+        data: {
+            labels: gradesData.map(d => d.grade),
+            datasets: [{
+                label: 'Students',
+                data: gradesData.map(d => d.count),
+                backgroundColor: '#3498db'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // 4. Results by Level Chart
+    new Chart(document.getElementById('resultsLevelChart'), {
+        type: 'bar',
+        data: {
+            labels: resultsByLevel.map(d => d.level),
+            datasets: [{
+                label: 'Results',
+                data: resultsByLevel.map(d => d.count),
+                backgroundColor: ['#3498db', '#9b59b6', '#e74c3c']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { beginAtZero: true }
+            }
+        }
+    });
+
+    // 5. Payment Trend Chart
+    new Chart(document.getElementById('paymentTrendChart'), {
+        type: 'line',
+        data: {
+            labels: paymentByDay.map(d => d.date),
+            datasets: [{
+                label: 'Revenue (KES)',
+                data: paymentByDay.map(d => d.amount),
+                borderColor: '#27ae60',
+                backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // 6. Top Schools Chart
+    if (topSchools.length > 0) {
+        new Chart(document.getElementById('topSchoolsChart'), {
+            type: 'bar',
+            data: {
+                labels: topSchools.map(d => d.school.substring(0, 15) + '...'),
+                datasets: [{
+                    label: 'Mean Score',
+                    data: topSchools.map(d => d.mean_score),
+                    backgroundColor: '#f39c12'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
