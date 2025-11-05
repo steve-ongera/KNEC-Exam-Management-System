@@ -14,4 +14,12 @@ urlpatterns = [
     path('dashboard/marks-entry/', views.marks_entry_dashboard, name='marks_entry_dashboard'),
     path('dashboard/school-admin/', views.school_admin_dashboard, name='school_admin_dashboard'),
     path('dashboard/school-staff/', views.school_staff_dashboard, name='school_staff_dashboard'),
+
+    # candidate management
+    path('candidates/', views.candidates_list, name='candidates_list'),
+    path('candidates/create/', views.candidate_create, name='candidate_create'),
+    path('candidates/<str:index_number>/', views.candidate_detail, name='candidate_detail'),
+    path('candidates/<str:index_number>/update/', views.candidate_update, name='candidate_update'),
+    path('candidates/<str:index_number>/delete/', views.candidate_delete, name='candidate_delete'),
+    
 ]

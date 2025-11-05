@@ -1,0 +1,743 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Candidates Management - KNEC EMS{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-blue: #2c5aa0;
+        --secondary-blue: #3a6bc0;
+        --accent-green: #28a745;
+        --accent-orange: #fd7e14;
+        --accent-red: #dc3545;
+        --text-primary: #2c3e50;
+        --text-secondary: #6c757d;
+        --border-light: #e9ecef;
+        --bg-light: #f8f9fa;
+    }
+
+    .breadcrumb {
+        padding: 0.75rem 0;
+        margin-bottom: 1.5rem;
+        background: transparent;
+        font-size: 0.875rem;
+    }
+
+    .breadcrumb-item + .breadcrumb-item::before {
+        content: "/";
+        color: var(--text-secondary);
+        padding: 0 0.5rem;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .page-actions {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stats-card {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .stats-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-blue);
+        margin-bottom: 0.25rem;
+    }
+
+    .stats-label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .filter-card {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .filter-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .table-card {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-light);
+        background: var(--bg-light);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .custom-table {
+        width: 100%;
+        margin: 0;
+        font-size: 0.825rem;
+    }
+
+    .custom-table thead th {
+        background: var(--bg-light);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid var(--border-light);
+        white-space: nowrap;
+    }
+
+    .custom-table tbody td {
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+        font-size: 0.825rem;
+    }
+
+    .custom-table tbody tr:hover {
+        background: var(--bg-light);
+    }
+
+    .badge-custom {
+        padding: 0.35rem 0.65rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .badge-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .badge-inactive {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .badge-verified {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .badge-unverified {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.25rem;
+        justify-content: center;
+    }
+
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+        border: 1px solid;
+        line-height: 1;
+    }
+
+    .btn-view {
+        background: white;
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+    }
+
+    .btn-view:hover {
+        background: var(--primary-blue);
+        color: white;
+    }
+
+    .btn-edit {
+        background: white;
+        border-color: var(--accent-orange);
+        color: var(--accent-orange);
+    }
+
+    .btn-edit:hover {
+        background: var(--accent-orange);
+        color: white;
+    }
+
+    .btn-delete {
+        background: white;
+        border-color: var(--accent-red);
+        color: var(--accent-red);
+    }
+
+    .btn-delete:hover {
+        background: var(--accent-red);
+        color: white;
+    }
+
+    .pagination-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        border-top: 1px solid var(--border-light);
+        font-size: 0.825rem;
+    }
+
+    .pagination {
+        margin: 0;
+    }
+
+    .page-link {
+        color: var(--primary-blue);
+        border-color: var(--border-light);
+        font-size: 0.825rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    .page-link:hover {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        color: white;
+    }
+
+    .page-item.active .page-link {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+    }
+
+    .empty-state {
+        padding: 3rem 2rem;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.1);
+    }
+
+    .btn-primary {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-primary:hover {
+        background: var(--secondary-blue);
+        border-color: var(--secondary-blue);
+    }
+
+    .btn-outline-primary {
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-primary:hover {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+    }
+
+    .btn-sm {
+        font-size: 0.8rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .breadcrumb {
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .page-actions {
+            padding: 1rem;
+        }
+
+        .page-actions .d-flex {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .page-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .stats-card {
+            padding: 1rem;
+        }
+
+        .stats-value {
+            font-size: 1.25rem;
+        }
+
+        .stats-label {
+            font-size: 0.75rem;
+        }
+
+        .filter-card {
+            padding: 1rem;
+        }
+
+        .filter-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .table-header {
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .custom-table {
+            font-size: 0.8rem;
+        }
+
+        .custom-table thead {
+            display: none;
+        }
+
+        .custom-table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+        }
+
+        .custom-table tbody td {
+            display: block;
+            text-align: right;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+            position: relative;
+        }
+
+        .custom-table tbody td:last-child {
+            border-bottom: none;
+        }
+
+        .custom-table tbody td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 0.75rem;
+            top: 0.75rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            text-transform: uppercase;
+        }
+
+        .action-buttons {
+            justify-content: flex-end;
+        }
+
+        .pagination-wrapper {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .row.g-3 {
+            margin-left: -0.5rem;
+            margin-right: -0.5rem;
+        }
+
+        .row.g-3 > [class*="col-"] {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .filter-card .row.g-3 > [class*="col-"] {
+            margin-bottom: 1rem;
+        }
+
+        .btn-action {
+            padding: 0.375rem;
+        }
+
+        .btn-action i {
+            margin: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Admin Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Candidates</li>
+    </ol>
+</nav>
+
+<!-- Page Actions -->
+<div class="page-actions">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="mb-1" style="color: var(--text-primary); font-weight: 600; font-size: 1.5rem;">Candidates Management</h1>
+            <p class="text-muted mb-0" style="font-size: 0.875rem;">
+                <i class="bi bi-calendar3 me-1"></i>{{ now|date:"d M Y, H:i" }}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="?export=excel{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if search_query %}&search={{ search_query }}{% endif %}" class="btn btn-outline-primary">
+                <i class="bi bi-file-earmark-excel me-1"></i>
+                Export
+            </a>
+            <a href="{% url 'candidate_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>
+                Register
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="stats-value">{{ total_candidates }}</div>
+            <div class="stats-label">Total Candidates</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="stats-value">{{ active_candidates }}</div>
+            <div class="stats-label">Active Candidates</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="stats-value">{{ verified_certs }}</div>
+            <div class="stats-label">Verified Certificates</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <div class="filter-header">
+        <h3 class="filter-title">
+            <i class="bi bi-funnel me-1"></i>
+            Search & Filters
+        </h3>
+        <a href="{% url 'candidates_list' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-x-circle me-1"></i>
+            Clear
+        </a>
+    </div>
+    
+    <form method="get" action="{% url 'candidates_list' %}">
+        <div class="row g-3">
+            <!-- Search -->
+            <div class="col-md-12">
+                <label class="form-label fw-semibold" style="font-size: 0.875rem;">Search</label>
+                <input type="text" name="search" class="form-control form-control-sm" 
+                       placeholder="Index number, name, school, birth certificate..." 
+                       value="{{ search_query }}">
+            </div>
+
+            <!-- School Filter -->
+            <div class="col-md-3">
+                <label class="form-label fw-semibold" style="font-size: 0.875rem;">School</label>
+                <select name="school" class="form-select form-select-sm">
+                    <option value="">All Schools</option>
+                    {% for school in schools %}
+                        <option value="{{ school.id }}" {% if filters.school == school.id|stringformat:"s" %}selected{% endif %}>
+                            {{ school.code }} - {{ school.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Education Level Filter -->
+            <div class="col-md-3">
+                <label class="form-label fw-semibold" style="font-size: 0.875rem;">Education Level</label>
+                <select name="level" class="form-select form-select-sm">
+                    <option value="">All Levels</option>
+                    {% for level in education_levels %}
+                        <option value="{{ level.id }}" {% if filters.level == level.id|stringformat:"s" %}selected{% endif %}>
+                            {{ level.get_name_display }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Academic Year Filter -->
+            <div class="col-md-2">
+                <label class="form-label fw-semibold" style="font-size: 0.875rem;">Academic Year</label>
+                <select name="year" class="form-select form-select-sm">
+                    <option value="">All Years</option>
+                    {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if filters.year == year.id|stringformat:"s" %}selected{% endif %}>
+                            {{ year.year }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Gender Filter -->
+            <div class="col-md-2">
+                <label class="form-label fw-semibold" style="font-size: 0.875rem;">Gender</label>
+                <select name="gender" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="M" {% if filters.gender == 'M' %}selected{% endif %}>Male</option>
+                    <option value="F" {% if filters.gender == 'F' %}selected{% endif %}>Female</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="col-md-2">
+                <label class="form-label fw-semibold" style="font-size: 0.875rem;">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-search me-1"></i>
+                    Apply Filters
+                </button>
+                <a href="{% url 'candidates_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-clockwise me-1"></i>
+                    Reset
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Candidates Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h3 class="table-title">
+            <i class="bi bi-person-lines-fill me-1"></i>
+            Candidates List ({{ page_obj.paginator.count }})
+        </h3>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Index Number</th>
+                    <th>Full Name</th>
+                    <th>Gender</th>
+                    <th>School</th>
+                    <th>Level</th>
+                    <th>Academic Year</th>
+                    <th>Birth Cert</th>
+                    <th>Status</th>
+                    <th style="text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for candidate in page_obj %}
+                <tr>
+                    <td data-label="Index Number"><strong>{{ candidate.index_number }}</strong></td>
+                    <td data-label="Full Name">{{ candidate.get_full_name }}</td>
+                    <td data-label="Gender">{{ candidate.get_gender_display }}</td>
+                    <td data-label="School">
+                        <div style="font-weight: 500;">{{ candidate.school.code }}</div>
+                        <small class="text-muted" style="font-size: 0.75rem;">{{ candidate.school.name|truncatewords:3 }}</small>
+                    </td>
+                    <td data-label="Level">{{ candidate.education_level.get_name_display }}</td>
+                    <td data-label="Academic Year">{{ candidate.academic_year.year }}</td>
+                    <td data-label="Birth Cert">
+                        {% if candidate.is_birth_cert_verified %}
+                            <span class="badge-custom badge-verified">
+                                <i class="bi bi-check-circle me-1"></i>Verified
+                            </span>
+                        {% elif candidate.birth_certificate %}
+                            <span class="badge-custom badge-unverified">
+                                <i class="bi bi-exclamation-circle me-1"></i>Unverified
+                            </span>
+                        {% else %}
+                            <span class="text-muted" style="font-size: 0.75rem;">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Status">
+                        {% if candidate.is_active %}
+                            <span class="badge-custom badge-active">
+                                <i class="bi bi-check-circle me-1"></i>Active
+                            </span>
+                        {% else %}
+                            <span class="badge-custom badge-inactive">
+                                <i class="bi bi-x-circle me-1"></i>Inactive
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Actions">
+                        <div class="action-buttons">
+                            <a href="{% url 'candidate_detail' candidate.index_number %}" 
+                               class="btn btn-action btn-view" 
+                               title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'candidate_update' candidate.index_number %}" 
+                               class="btn btn-action btn-edit" 
+                               title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if user.is_admin or user.is_knec_staff %}
+                            <button class="btn btn-action btn-delete" 
+                                    title="Delete"
+                                    onclick="deleteCandidate('{{ candidate.index_number }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-wrapper">
+        <div class="text-muted">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
+        </div>
+        
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if search_query %}&search={{ search_query }}{% endif %}">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}{% if search_query %}&search={{ search_query }}{% endif %}">Last</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <h5 style="font-size: 1.1rem;">No candidates found</h5>
+        <p class="text-muted" style="font-size: 0.875rem;">Try adjusting your search or filters</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteCandidate(indexNumber) {
+    if (!confirm(`Are you sure you want to delete candidate ${indexNumber}? This action cannot be undone.`)) {
+        return;
+    }
+
+    fetch(`/candidates/${indexNumber}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error deleting candidate: ' + error);
+    });
+}
+</script>
+{% endblock %}

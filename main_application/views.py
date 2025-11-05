@@ -428,3 +428,497 @@ def school_staff_dashboard(request):
         'page_title': 'School Staff Dashboard',
     }
     return render(request, 'dashboards/school_staff_dashboard.html', context)
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import JsonResponse, HttpResponse
+from django.db.models import Q, Count
+from django.core.paginator import Paginator
+from django.utils import timezone
+from datetime import datetime
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
+
+from .models import (
+    Candidate, School, EducationLevel, AcademicYear, 
+    BirthCertificateRegistry, User, UserActivityLog
+)
+
+
+def log_activity(user, action, description, ip_address, user_agent=''):
+    """Helper function to log user activities"""
+    UserActivityLog.objects.create(
+        user=user,
+        action=action,
+        description=description,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+
+
+def get_client_ip(request):
+    """Get client IP address"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+@login_required
+def candidates_list(request):
+    """List all candidates with search, filter, and pagination"""
+    
+    # Base queryset
+    candidates = Candidate.objects.select_related(
+        'school', 'education_level', 'academic_year', 'birth_certificate', 'registered_by'
+    ).all()
+    
+    # Get filter parameters
+    search_query = request.GET.get('search', '')
+    school_filter = request.GET.get('school', '')
+    level_filter = request.GET.get('level', '')
+    year_filter = request.GET.get('year', '')
+    gender_filter = request.GET.get('gender', '')
+    status_filter = request.GET.get('status', '')
+    cert_verified = request.GET.get('cert_verified', '')
+    
+    # Apply search
+    if search_query:
+        candidates = candidates.filter(
+            Q(index_number__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(middle_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(birth_certificate__certificate_number__icontains=search_query) |
+            Q(school__name__icontains=search_query) |
+            Q(school__code__icontains=search_query)
+        )
+    
+    # Apply filters
+    if school_filter:
+        candidates = candidates.filter(school_id=school_filter)
+    
+    if level_filter:
+        candidates = candidates.filter(education_level_id=level_filter)
+    
+    if year_filter:
+        candidates = candidates.filter(academic_year_id=year_filter)
+    
+    if gender_filter:
+        candidates = candidates.filter(gender=gender_filter)
+    
+    if status_filter:
+        is_active = status_filter == 'active'
+        candidates = candidates.filter(is_active=is_active)
+    
+    if cert_verified:
+        is_verified = cert_verified == 'verified'
+        candidates = candidates.filter(is_birth_cert_verified=is_verified)
+    
+    # Get filter options
+    schools = School.objects.filter(is_active=True).order_by('name')
+    education_levels = EducationLevel.objects.filter(is_active=True)
+    academic_years = AcademicYear.objects.all().order_by('-year')
+    
+    # Statistics
+    total_candidates = candidates.count()
+    active_candidates = candidates.filter(is_active=True).count()
+    verified_certs = candidates.filter(is_birth_cert_verified=True).count()
+    
+    # Export to Excel
+    if request.GET.get('export') == 'excel':
+        return export_candidates_to_excel(candidates, request)
+    
+    # Pagination
+    paginator = Paginator(candidates.order_by('-registration_date'), 25)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Log activity
+    log_activity(
+        user=request.user,
+        action='VIEW',
+        description=f'Viewed candidates list (Total: {total_candidates})',
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get('HTTP_USER_AGENT', '')
+    )
+    
+    context = {
+        'page_obj': page_obj,
+        'schools': schools,
+        'education_levels': education_levels,
+        'academic_years': academic_years,
+        'total_candidates': total_candidates,
+        'active_candidates': active_candidates,
+        'verified_certs': verified_certs,
+        'search_query': search_query,
+        'filters': {
+            'school': school_filter,
+            'level': level_filter,
+            'year': year_filter,
+            'gender': gender_filter,
+            'status': status_filter,
+            'cert_verified': cert_verified,
+        },
+        'now': timezone.now(),
+    }
+    
+    return render(request, 'candidates/candidates_list.html', context)
+
+
+@login_required
+def candidate_detail(request, index_number):
+    """View candidate details"""
+    candidate = get_object_or_404(
+        Candidate.objects.select_related(
+            'school', 'education_level', 'academic_year', 
+            'birth_certificate', 'registered_by'
+        ),
+        index_number=index_number
+    )
+    
+    # Get related data
+    exam_results = candidate.exam_results.select_related(
+        'subject', 'grading_scheme_used', 'entered_by'
+    ).all()
+    
+    aggregate_result = None
+    try:
+        aggregate_result = candidate.aggregate_result
+    except:
+        pass
+    
+    payments = candidate.result_payments.all().order_by('-created_at')
+    
+    # Log activity
+    log_activity(
+        user=request.user,
+        action='VIEW',
+        description=f'Viewed candidate details: {candidate.index_number}',
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get('HTTP_USER_AGENT', '')
+    )
+    
+    context = {
+        'candidate': candidate,
+        'exam_results': exam_results,
+        'aggregate_result': aggregate_result,
+        'payments': payments,
+        'now': timezone.now(),
+    }
+    
+    return render(request, 'candidates/candidate_detail.html', context)
+
+
+@login_required
+def candidate_create(request):
+    """Create new candidate"""
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            school_id = request.POST.get('school')
+            education_level_id = request.POST.get('education_level')
+            academic_year_id = request.POST.get('academic_year')
+            first_name = request.POST.get('first_name')
+            middle_name = request.POST.get('middle_name', '')
+            last_name = request.POST.get('last_name')
+            gender = request.POST.get('gender')
+            date_of_birth = request.POST.get('date_of_birth')
+            phone_number = request.POST.get('phone_number', '')
+            parent_guardian_phone = request.POST.get('parent_guardian_phone')
+            birth_cert_number = request.POST.get('birth_certificate_number', '')
+            
+            # Validate required fields
+            if not all([school_id, education_level_id, academic_year_id, 
+                       first_name, last_name, gender, date_of_birth, parent_guardian_phone]):
+                messages.error(request, 'Please fill in all required fields.')
+                return redirect('candidate_create')
+            
+            # Get related objects
+            school = School.objects.get(id=school_id)
+            education_level = EducationLevel.objects.get(id=education_level_id)
+            academic_year = AcademicYear.objects.get(id=academic_year_id)
+            
+            # Check age for birth certificate requirement
+            dob = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+            age = (timezone.now().date() - dob).days / 365.25
+            
+            birth_certificate = None
+            is_birth_cert_verified = False
+            
+            if age < 18 and birth_cert_number:
+                # Verify birth certificate
+                try:
+                    birth_certificate = BirthCertificateRegistry.objects.get(
+                        certificate_number=birth_cert_number
+                    )
+                    
+                    # Check if already used
+                    if birth_certificate.is_used_for_exam:
+                        messages.error(
+                            request, 
+                            f'Birth certificate {birth_cert_number} has already been used for registration.'
+                        )
+                        return redirect('candidate_create')
+                    
+                    # Verify name matches
+                    if (birth_certificate.first_name.upper() != first_name.upper() or
+                        birth_certificate.last_name.upper() != last_name.upper()):
+                        messages.warning(
+                            request,
+                            'Birth certificate name does not match provided name. Please verify.'
+                        )
+                    else:
+                        is_birth_cert_verified = True
+                    
+                except BirthCertificateRegistry.DoesNotExist:
+                    messages.error(
+                        request,
+                        f'Birth certificate {birth_cert_number} not found in registry.'
+                    )
+                    return redirect('candidate_create')
+            
+            # Create candidate
+            candidate = Candidate.objects.create(
+                school=school,
+                education_level=education_level,
+                academic_year=academic_year,
+                first_name=first_name.strip().upper(),
+                middle_name=middle_name.strip().upper(),
+                last_name=last_name.strip().upper(),
+                gender=gender,
+                date_of_birth=dob,
+                phone_number=phone_number,
+                parent_guardian_phone=parent_guardian_phone,
+                birth_certificate=birth_certificate,
+                is_birth_cert_verified=is_birth_cert_verified,
+                registered_by=request.user
+            )
+            
+            # Mark birth certificate as used
+            if birth_certificate:
+                birth_certificate.is_used_for_exam = True
+                birth_certificate.used_exam_level = education_level
+                birth_certificate.save()
+            
+            # Log activity
+            log_activity(
+                user=request.user,
+                action='CREATE',
+                description=f'Created candidate: {candidate.index_number} - {candidate.get_full_name()}',
+                ip_address=get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
+            messages.success(
+                request,
+                f'Candidate registered successfully! Index Number: {candidate.index_number}'
+            )
+            return redirect('candidate_detail', index_number=candidate.index_number)
+            
+        except Exception as e:
+            messages.error(request, f'Error creating candidate: {str(e)}')
+            return redirect('candidate_create')
+    
+    # GET request - show form
+    schools = School.objects.filter(is_active=True).order_by('name')
+    education_levels = EducationLevel.objects.filter(is_active=True)
+    academic_years = AcademicYear.objects.all().order_by('-year')
+    
+    context = {
+        'schools': schools,
+        'education_levels': education_levels,
+        'academic_years': academic_years,
+        'mode': 'create',
+        'now': timezone.now(),
+    }
+    
+    return render(request, 'candidates/candidate_form.html', context)
+
+
+@login_required
+def candidate_update(request, index_number):
+    """Update candidate information"""
+    candidate = get_object_or_404(Candidate, index_number=index_number)
+    
+    if request.method == 'POST':
+        try:
+            # Update fields
+            candidate.first_name = request.POST.get('first_name', '').strip().upper()
+            candidate.middle_name = request.POST.get('middle_name', '').strip().upper()
+            candidate.last_name = request.POST.get('last_name', '').strip().upper()
+            candidate.gender = request.POST.get('gender')
+            candidate.phone_number = request.POST.get('phone_number', '')
+            candidate.parent_guardian_phone = request.POST.get('parent_guardian_phone')
+            
+            # Update date of birth if provided
+            dob_str = request.POST.get('date_of_birth')
+            if dob_str:
+                candidate.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
+            
+            # Update status if admin
+            if request.user.is_admin or request.user.is_knec_staff:
+                is_active = request.POST.get('is_active') == 'on'
+                candidate.is_active = is_active
+            
+            candidate.save()
+            
+            # Log activity
+            log_activity(
+                user=request.user,
+                action='UPDATE',
+                description=f'Updated candidate: {candidate.index_number}',
+                ip_address=get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
+            messages.success(request, 'Candidate updated successfully!')
+            return redirect('candidate_detail', index_number=candidate.index_number)
+            
+        except Exception as e:
+            messages.error(request, f'Error updating candidate: {str(e)}')
+            return redirect('candidate_update', index_number=index_number)
+    
+    # GET request - show form
+    schools = School.objects.filter(is_active=True).order_by('name')
+    education_levels = EducationLevel.objects.filter(is_active=True)
+    academic_years = AcademicYear.objects.all().order_by('-year')
+    
+    context = {
+        'candidate': candidate,
+        'schools': schools,
+        'education_levels': education_levels,
+        'academic_years': academic_years,
+        'mode': 'update',
+        'now': timezone.now(),
+    }
+    
+    return render(request, 'candidates/candidate_form.html', context)
+
+
+@login_required
+def candidate_delete(request, index_number):
+    """Delete candidate (AJAX only)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    # Check permissions
+    if not (request.user.is_admin or request.user.is_knec_staff):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    try:
+        candidate = get_object_or_404(Candidate, index_number=index_number)
+        candidate_name = candidate.get_full_name()
+        
+        # Log activity before deletion
+        log_activity(
+            user=request.user,
+            action='DELETE',
+            description=f'Deleted candidate: {candidate.index_number} - {candidate_name}',
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')
+        )
+        
+        # Mark birth certificate as unused if exists
+        if candidate.birth_certificate:
+            birth_cert = candidate.birth_certificate
+            birth_cert.is_used_for_exam = False
+            birth_cert.used_exam_level = None
+            birth_cert.save()
+        
+        candidate.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Candidate {index_number} deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def export_candidates_to_excel(queryset, request):
+    """Export candidates to Excel file"""
+    
+    # Create workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Candidates"
+    
+    # Define header style
+    header_fill = PatternFill(start_color="2c5aa0", end_color="2c5aa0", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True, size=11)
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Define headers
+    headers = [
+        'Index Number', 'First Name', 'Middle Name', 'Last Name', 'Gender',
+        'Date of Birth', 'School Code', 'School Name', 'Education Level',
+        'Academic Year', 'Birth Certificate', 'Cert Verified', 'Phone Number',
+        'Parent/Guardian Phone', 'Status', 'Registration Date'
+    ]
+    
+    # Write headers
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+    
+    # Write data
+    for row_num, candidate in enumerate(queryset, 2):
+        ws.cell(row=row_num, column=1).value = candidate.index_number
+        ws.cell(row=row_num, column=2).value = candidate.first_name
+        ws.cell(row=row_num, column=3).value = candidate.middle_name
+        ws.cell(row=row_num, column=4).value = candidate.last_name
+        ws.cell(row=row_num, column=5).value = candidate.get_gender_display()
+        ws.cell(row=row_num, column=6).value = candidate.date_of_birth.strftime('%Y-%m-%d')
+        ws.cell(row=row_num, column=7).value = candidate.school.code
+        ws.cell(row=row_num, column=8).value = candidate.school.name
+        ws.cell(row=row_num, column=9).value = str(candidate.education_level)
+        ws.cell(row=row_num, column=10).value = candidate.academic_year.year
+        ws.cell(row=row_num, column=11).value = (
+            candidate.birth_certificate.certificate_number 
+            if candidate.birth_certificate else 'N/A'
+        )
+        ws.cell(row=row_num, column=12).value = 'Yes' if candidate.is_birth_cert_verified else 'No'
+        ws.cell(row=row_num, column=13).value = candidate.phone_number
+        ws.cell(row=row_num, column=14).value = candidate.parent_guardian_phone
+        ws.cell(row=row_num, column=15).value = 'Active' if candidate.is_active else 'Inactive'
+        ws.cell(row=row_num, column=16).value = candidate.registration_date.strftime('%Y-%m-%d %H:%M')
+    
+    # Auto-adjust column widths
+    for col_num in range(1, len(headers) + 1):
+        column_letter = get_column_letter(col_num)
+        max_length = len(headers[col_num - 1]) + 2
+        for row in ws.iter_rows(min_col=col_num, max_col=col_num):
+            for cell in row:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)) + 2)
+        ws.column_dimensions[column_letter].width = min(max_length, 50)
+    
+    # Log activity
+    log_activity(
+        user=request.user,
+        action='EXPORT',
+        description=f'Exported {queryset.count()} candidates to Excel',
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get('HTTP_USER_AGENT', '')
+    )
+    
+    # Create response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f'candidates_export_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    return response

@@ -1,0 +1,801 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Candidate Details - {{ candidate.index_number }} - KNEC EMS{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-blue: #2c5aa0;
+        --secondary-blue: #3a6bc0;
+        --accent-green: #28a745;
+        --accent-orange: #fd7e14;
+        --accent-red: #dc3545;
+        --text-primary: #2c3e50;
+        --text-secondary: #6c757d;
+        --border-light: #e9ecef;
+        --bg-light: #f8f9fa;
+    }
+
+    .breadcrumb {
+        padding: 0.75rem 0;
+        margin-bottom: 1.5rem;
+        background: transparent;
+        font-size: 0.875rem;
+    }
+
+    .breadcrumb-item + .breadcrumb-item::before {
+        content: "/";
+        color: var(--text-secondary);
+        padding: 0 0.5rem;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .page-header {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .candidate-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 2rem;
+    }
+
+    .candidate-main {
+        flex: 1;
+    }
+
+    .candidate-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
+        background: var(--primary-blue);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .candidate-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .index-number {
+        display: inline-block;
+        background: var(--bg-light);
+        color: var(--primary-blue);
+        padding: 0.35rem 1rem;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        border: 1px solid var(--border-light);
+        margin-bottom: 1rem;
+    }
+
+    .candidate-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .quick-stats {
+        display: flex;
+        gap: 2rem;
+        margin-top: 1rem;
+    }
+
+    .quick-stat {
+        text-align: center;
+    }
+
+    .quick-stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary-blue);
+    }
+
+    .quick-stat-label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .info-card {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-grid {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .info-item {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        align-items: start;
+        gap: 1rem;
+    }
+
+    .info-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .badge-custom {
+        padding: 0.35rem 0.65rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .badge-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .badge-inactive {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .badge-verified {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .badge-unverified {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .results-table {
+        width: 100%;
+        margin: 0;
+        font-size: 0.825rem;
+    }
+
+    .results-table thead th {
+        background: var(--bg-light);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-light);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .results-table tbody td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+
+    .results-table tbody tr:hover {
+        background: var(--bg-light);
+    }
+
+    .grade-badge {
+        display: inline-block;
+        padding: 0.35rem 0.65rem;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-align: center;
+        min-width: 40px;
+    }
+
+    .grade-A { background: #28a745; color: white; }
+    .grade-A-minus { background: #5cb85c; color: white; }
+    .grade-B-plus { background: #17a2b8; color: white; }
+    .grade-B { background: #5bc0de; color: white; }
+    .grade-C { background: #ffc107; color: #000; }
+    .grade-D { background: #fd7e14; color: white; }
+    .grade-E { background: #dc3545; color: white; }
+
+    .aggregate-card {
+        background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+        color: white;
+        padding: 1.5rem;
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    .aggregate-grade {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .aggregate-points {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 1rem;
+    }
+
+    .aggregate-meta {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+
+    .payment-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.875rem 0;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .payment-item:last-child {
+        border-bottom: none;
+    }
+
+    .payment-item:hover {
+        background: var(--bg-light);
+    }
+
+    .empty-state {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-primary:hover {
+        background: var(--secondary-blue);
+        border-color: var(--secondary-blue);
+    }
+
+    .btn-outline-primary {
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-primary:hover {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+    }
+
+    .btn-sm {
+        font-size: 0.8rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .candidate-header {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .candidate-avatar {
+            align-self: center;
+        }
+
+        .quick-stats {
+            justify-content: center;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .info-item {
+            grid-template-columns: 1fr;
+            gap: 0.25rem;
+        }
+
+        .aggregate-meta {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .candidate-meta {
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .page-header {
+            padding: 1.25rem;
+        }
+
+        .info-card {
+            padding: 1rem;
+        }
+
+        .quick-stats {
+            gap: 1rem;
+        }
+
+        .quick-stat-value {
+            font-size: 1.1rem;
+        }
+
+        .results-table {
+            font-size: 0.8rem;
+        }
+
+        .results-table thead {
+            display: none;
+        }
+
+        .results-table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            padding: 0.75rem;
+        }
+
+        .results-table tbody td {
+            display: block;
+            text-align: left;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-light);
+            position: relative;
+        }
+
+        .results-table tbody td:last-child {
+            border-bottom: none;
+        }
+
+        .results-table tbody td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            text-transform: uppercase;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Admin Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'candidates_list' %}">Candidates</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ candidate.index_number }}</li>
+    </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="candidate-header">
+        <div class="candidate-main">
+            <div class="index-number">
+                <i class="bi bi-person-badge me-1"></i>
+                {{ candidate.index_number }}
+            </div>
+            <h1 class="candidate-title">{{ candidate.get_full_name }}</h1>
+            
+            <div class="candidate-meta">
+                <div class="meta-item">
+                    <i class="bi bi-building"></i>
+                    {{ candidate.school.code }}
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-mortarboard"></i>
+                    {{ candidate.education_level.get_name_display }}
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-calendar3"></i>
+                    {{ candidate.academic_year.year }}
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-gender-ambiguous"></i>
+                    {{ candidate.get_gender_display }}
+                </div>
+            </div>
+
+            <div class="quick-stats">
+                <div class="quick-stat">
+                    <div class="quick-stat-value">{{ exam_results.count }}</div>
+                    <div class="quick-stat-label">Subjects</div>
+                </div>
+                {% if aggregate_result %}
+                <div class="quick-stat">
+                    <div class="quick-stat-value">{{ aggregate_result.mean_grade }}</div>
+                    <div class="quick-stat-label">Mean Grade</div>
+                </div>
+                <div class="quick-stat">
+                    <div class="quick-stat-value">{{ aggregate_result.total_points }}</div>
+                    <div class="quick-stat-label">Total Points</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="candidate-avatar">
+            {{ candidate.first_name|first }}{{ candidate.last_name|first }}
+        </div>
+    </div>
+
+    <div class="action-buttons mt-3">
+        <a href="{% url 'candidate_update' candidate.index_number %}" class="btn btn-primary">
+            <i class="bi bi-pencil me-1"></i>
+            Edit
+        </a>
+        <button class="btn btn-outline-primary">
+            <i class="bi bi-printer me-1"></i>
+            Print
+        </button>
+        <button class="btn btn-outline-primary">
+            <i class="bi bi-file-earmark-pdf me-1"></i>
+            PDF
+        </button>
+        {% if user.is_admin or user.is_knec_staff %}
+        <button class="btn btn-outline-danger" onclick="deleteCandidate('{{ candidate.index_number }}')">
+            <i class="bi bi-trash me-1"></i>
+            Delete
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-6">
+        <!-- Personal Information -->
+        <div class="info-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="bi bi-person"></i>
+                    Personal Information
+                </h3>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">First Name:</div>
+                    <div class="info-value">{{ candidate.first_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Middle Name:</div>
+                    <div class="info-value">{{ candidate.middle_name|default:"—" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Last Name:</div>
+                    <div class="info-value">{{ candidate.last_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Gender:</div>
+                    <div class="info-value">{{ candidate.get_gender_display }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Date of Birth:</div>
+                    <div class="info-value">{{ candidate.date_of_birth|date:"d M Y" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value">{{ candidate.phone_number|default:"—" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Guardian Phone:</div>
+                    <div class="info-value">{{ candidate.parent_guardian_phone|default:"—" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- School Information -->
+        <div class="info-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="bi bi-building"></i>
+                    School Information
+                </h3>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">School Code:</div>
+                    <div class="info-value">{{ candidate.school.code }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">School Name:</div>
+                    <div class="info-value">{{ candidate.school.name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">County:</div>
+                    <div class="info-value">{{ candidate.school.county }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Sub-County:</div>
+                    <div class="info-value">{{ candidate.school.sub_county }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Education Level:</div>
+                    <div class="info-value">{{ candidate.education_level.get_name_display }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Academic Year:</div>
+                    <div class="info-value">{{ candidate.academic_year.year }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Birth Certificate -->
+        <div class="info-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="bi bi-file-text"></i>
+                    Birth Certificate
+                </h3>
+            </div>
+
+            {% if candidate.birth_certificate %}
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Certificate No:</div>
+                    <div class="info-value">{{ candidate.birth_certificate.certificate_number }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Status:</div>
+                    <div class="info-value">
+                        {% if candidate.is_birth_cert_verified %}
+                            <span class="badge-custom badge-verified">Verified</span>
+                        {% else %}
+                            <span class="badge-custom badge-unverified">Unverified</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Full Name:</div>
+                    <div class="info-value">{{ candidate.birth_certificate.get_full_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Place of Birth:</div>
+                    <div class="info-value">{{ candidate.birth_certificate.place_of_birth }}</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-file-earmark-x"></i>
+                <p>No birth certificate registered</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-6">
+        <!-- Aggregate Result -->
+        {% if aggregate_result %}
+        <div class="info-card">
+            <div class="aggregate-card">
+                <div class="aggregate-grade">{{ aggregate_result.mean_grade }}</div>
+                <div class="aggregate-points">{{ aggregate_result.total_points }} Points</div>
+                <div class="aggregate-meta">
+                    {% if aggregate_result.position_in_school %}
+                    <span>School: #{{ aggregate_result.position_in_school }}</span>
+                    {% endif %}
+                    {% if aggregate_result.position_in_county %}
+                    <span>County: #{{ aggregate_result.position_in_county }}</span>
+                    {% endif %}
+                </div>
+                {% if aggregate_result.is_released %}
+                <div class="mt-2">
+                    <small>Released {{ aggregate_result.release_date|date:"d M Y" }}</small>
+                </div>
+                {% else %}
+                <div class="mt-2">
+                    <small class="text-warning">Not Yet Released</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Exam Results -->
+        <div class="info-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="bi bi-clipboard-check"></i>
+                    Exam Results
+                </h3>
+                <span class="badge bg-primary">{{ exam_results.count }}</span>
+            </div>
+
+            {% if exam_results %}
+            <div class="table-responsive">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th style="text-align: center;">Score</th>
+                            <th style="text-align: center;">Grade</th>
+                            <th style="text-align: center;">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in exam_results %}
+                        <tr>
+                            <td data-label="Subject">
+                                <div style="font-weight: 500;">{{ result.subject.code }}</div>
+                                <small class="text-muted">{{ result.subject.name }}</small>
+                            </td>
+                            <td data-label="Score" style="text-align: center; font-weight: 600;">{{ result.raw_score }}</td>
+                            <td data-label="Grade" style="text-align: center;">
+                                <span class="grade-badge grade-{{ result.grade|cut:'-'|cut:'+' }}">
+                                    {{ result.grade }}
+                                </span>
+                            </td>
+                            <td data-label="Points" style="text-align: center; font-weight: 600;">{{ result.points|default:"—" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-clipboard-x"></i>
+                <p>No exam results available</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Registration Details -->
+        <div class="info-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="bi bi-info-circle"></i>
+                    Registration Details
+                </h3>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Status:</div>
+                    <div class="info-value">
+                        {% if candidate.is_active %}
+                            <span class="badge-custom badge-active">Active</span>
+                        {% else %}
+                            <span class="badge-custom badge-inactive">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Registered By:</div>
+                    <div class="info-value">{{ candidate.registered_by.get_full_name|default:"System" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Registration Date:</div>
+                    <div class="info-value">{{ candidate.registration_date|date:"d M Y, H:i" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Last Updated:</div>
+                    <div class="info-value">{{ candidate.updated_at|date:"d M Y, H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteCandidate(indexNumber) {
+    if (!confirm(`Are you sure you want to delete candidate ${indexNumber}? This action cannot be undone.`)) {
+        return;
+    }
+
+    const userConfirm = prompt('Type DELETE to confirm deletion:');
+    if (userConfirm !== 'DELETE') {
+        alert('Deletion cancelled');
+        return;
+    }
+
+    fetch(`/candidates/${indexNumber}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            window.location.href = '{% url "candidates_list" %}';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error deleting candidate: ' + error);
+    });
+}
+</script>
+{% endblock %}
